@@ -5,3 +5,6 @@ authors = ["zpallin <zpallin@gmail.com>"]
 
 [dependencies]
 curl = "*"
+argparse = "*"
+serde = "*"
+serde_json = "*"
