@@ -11,6 +11,19 @@ use serde_json::Error as JsonError;
 // internal imports
 use cli::Args;
 
+/// Queries the reddit api with a string, returns a JsonValue
+///
+/// # Examples
+///
+/// ```
+/// extern crate serde_json;
+/// extern crate rust_reddit;
+/// use rust_reddit::api;
+/// use serde_json::{Value,Error};
+///
+/// let res = api::query("/r/rust/top/.json?count=20", args);
+/// ```
+///
 pub fn query(search_string: &str, args: Args) -> JsonValue {
 
     let mut easy = Easy::new();

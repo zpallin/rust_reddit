@@ -1,11 +1,15 @@
 
 use argparse::{ArgumentParser, Store};
 
+/// Struct for gathering cli arguments.
+///
 pub struct Args {
     pub key: String,
     pub user_agent: String,
 }
 
+/// Default args are generic and probably won't work on default.
+///
 impl Default for Args {
     fn default() -> Args {
         Args {
@@ -15,6 +19,17 @@ impl Default for Args {
     }
 }
 
+/// Gets the arguments from the command line, in case you are 
+/// leveraging this as a command line tool.
+///
+/// # Example:
+/// ```
+/// extern crate rust_reddit;
+/// use rust_reddit::cli;
+///
+/// let args = cli::get_args();
+/// ```
+///
 pub fn get_args() -> Args {
     ///
     /// Argument parsing goes here

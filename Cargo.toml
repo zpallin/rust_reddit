@@ -1,5 +1,5 @@
 [package]
-name = "rust_reddit_api"
+name = "rust_reddit"
 version = "0.0.1"
 authors = ["zpallin <zpallin@gmail.com>"]
 
