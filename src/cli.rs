@@ -1,8 +1,10 @@
 
+use serde_json::Error;
 use argparse::{ArgumentParser, Store};
 
 /// Struct for gathering cli arguments.
 ///
+#[derive(Serialize, Deserialize)]
 pub struct Args {
     pub key: String,
     pub user_agent: String,

@@ -1,10 +1,15 @@
 extern crate curl;
 extern crate argparse;
+extern crate serde;
 extern crate serde_json;
 
-pub use self::api::query;
+#[macro_use]
+extern crate serde_derive;
+
+pub use self::api::path_query;
 pub use self::cli::get_args;
 
+#[macro_use]
 pub mod api;
 pub mod cli;
 
