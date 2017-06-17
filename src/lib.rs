@@ -13,7 +13,7 @@
 //! fn main(){
 //!     let data = rquery!(
 //!         "/r/rust/top/.json?count=20",
-//!         "user_agent" => "rust-reddit-test");
+//!         "headers" => "User-Agent: rust-reddit-test");
 //! 
 //!     println!("{}", data);
 //! }
@@ -36,9 +36,3 @@ pub use self::cli::get_args;
 pub mod api;
 pub mod cli;
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-    }
-}

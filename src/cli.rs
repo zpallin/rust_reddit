@@ -1,13 +1,14 @@
 
 use serde_json::Error;
 use argparse::{ArgumentParser, Store};
+use std::collections::HashMap;
 
 /// Struct for gathering cli arguments.
 ///
 #[derive(Serialize, Deserialize)]
 pub struct Args {
     pub key: String,
-    pub user_agent: String,
+    pub headers: String,
 }
 
 /// Default args are generic and probably won't work on default.
@@ -16,7 +17,7 @@ impl Default for Args {
     fn default() -> Args {
         Args {
             key: "".to_string(),
-            user_agent: "rust-reddit-api".to_string(),
+            headers: "".to_string(),
         }
     }
 }
@@ -44,13 +45,13 @@ pub fn get_args() -> Args {
             .add_option(
                 &["-k", "--api-key"],
                 Store,
-                "Your Reddit API key (which you will need)"
-            ).required();
-        ap.refer(&mut args.user_agent)
+                "Your Reddit API key (for authorized-only calls)"
+            );
+        ap.refer(&mut args.headers)
             .add_option(
-                &["-i", "--user-agent"],
+                &["-H", "--headers"],
                 Store,
-                "A user user-agent to pass to the HTTP request"
+                "Headers for the request, delimited by \",\" between full header lines"
             );
         ap.parse_args_or_exit();
     }

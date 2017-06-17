@@ -6,39 +6,33 @@ use std::io::{stdout, Write};
 use std::sync::RwLock;
 use curl::easy::{Easy, List};
 use std::str::from_utf8 as str_from_utf8;
+use std::collections::HashMap;
 use serde_json;
 
 // internal imports
 use cli::*;
 
-/// Queries the reddit api with a string, returns a serde_json::Value
+/// Generates request full uri
 ///
-/// # Examples
-///
-/// ```
-/// extern crate serde_json;
-/// extern crate rust_reddit;
-/// use rust_reddit::api;
-/// use serde_json::{Value,Error};
-///
-/// let res = api::query("/r/rust/top/.json?count=20", args);
-/// ```
-///
-pub fn path_query(search_string: &str, args: Args) -> serde_json::Value {
+fn gen_request_uri(search: &str) -> String{
+    format!("https://www.reddit.com{}", search).to_owned()
+}
 
-    let mut easy = Easy::new();
+/// Generates a curl::easy::List from HashMap, formats headers
+///
+fn gen_headers(header_string : String) -> List {
     let mut list = List::new();
+    for header in header_string.split(",") {
+        list.append(header);
+    }
+    list
+}
+
+/// Takes a formatted curl struct and generates output from a query
+/// sending it back to the caller as a string of JSON
+///
+pub fn get_output_from_transfer(easy : &mut Easy) -> String {
     let output_locker : RwLock<Vec<String>>= RwLock::new(Vec::new());
-    let full_request = format!("https://www.reddit.com{}", search_string);
-    let user_agent = format!("User-Agent: {}", args.user_agent); 
-
-    let argsString : String = serde_json::to_string(&args).unwrap();
-    println!("{}", argsString);
-
-    list.append(&user_agent);
-    easy.url(&full_request).unwrap();
-    easy.http_headers(list).unwrap();
-
     let mut transfer = easy.transfer();
 
     transfer.write_function(|data| {
@@ -51,6 +45,31 @@ pub fn path_query(search_string: &str, args: Args) -> serde_json::Value {
     transfer.perform().unwrap();
     
     let output = output_locker.read().unwrap().clone().join("");
+    output
+}
+
+/// Queries the reddit api with a string, returns a serde_json::Value
+///
+/// # Examples
+///
+/// ```
+/// extern crate serde_json;
+/// extern crate rust_reddit;
+/// use rust_reddit::api;
+/// use serde_json::{Value,Error};
+///
+/// let res = api::path_query("/r/rust/top/.json?count=20", args);
+/// ```
+///
+pub fn path_query(search_string: &str, args: Args) -> serde_json::Value {
+
+    let mut easy = Easy::new();
+    let mut list = List::new();
+
+    easy.url(&gen_request_uri(search_string)).unwrap();
+    easy.http_headers(gen_headers(args.headers)).unwrap();
+
+    let output = get_output_from_transfer(&mut easy);
 
     serde_json::from_str(&output).unwrap()
 }
@@ -70,7 +89,7 @@ macro_rules! rquery {
             let val = $val.to_string();
             match $key {
                 "key" => args.key = val,
-                "user_agent" => args.user_agent = val,
+                "headers" => args.headers = val,
                 _ => (),
             }
         )*
@@ -79,10 +98,9 @@ macro_rules! rquery {
 }
 
 #[cfg(test)]
-mod tests {
+mod test_path_query {
     #[test]
-    fn it_works() {
+    fn path_query_() {
         let args = Args::default();
-	    let data = reddit_api_search("/r/rust/top/.json?count=20", args);
     }
 }
