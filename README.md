@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/zpallin/rust_reddit.svg?branch=master)](https://travis-ci.org/zpallin/rust_reddit)
+
 # rust_reddit
 
 `rust_reddit` is a library that supports api calls to reddit via rust code.
