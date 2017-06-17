@@ -15,7 +15,7 @@ extern crate rust_reddit;
 fn main(){
     let data = rquery!(
         "/r/rust/top/.json?count=20",
-        "user_agent" => "rust-reddit-test");
+        "headers" => "User-Agent: rust-reddit-test");
 
     println!("{}", data);
 }
