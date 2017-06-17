@@ -56,9 +56,13 @@ pub fn get_output_from_transfer(easy : &mut Easy) -> String {
 /// extern crate serde_json;
 /// extern crate rust_reddit;
 /// use rust_reddit::api;
+/// use rust_reddit::cli;
 /// use serde_json::{Value,Error};
-///
-/// let res = api::path_query("/r/rust/top/.json?count=20", args);
+/// 
+/// fn main() {
+///     let args = cli::get_args();
+///     let res = api::path_query("/r/rust/top/.json?count=20", args);
+/// }
 /// ```
 ///
 pub fn path_query(search_string: &str, args: Args) -> serde_json::Value {
@@ -77,11 +81,13 @@ pub fn path_query(search_string: &str, args: Args) -> serde_json::Value {
 #[macro_export]
 macro_rules! rquery {
     ( $q:expr ) => {{
+        extern crate rust_reddit;
         use rust_reddit::api::path_query;
         use rust_reddit::cli::Args;
         path_query($q, Args::default())
     }};
     ( $q:expr, $($key:expr => $val:expr),* ) => {{
+        extern crate rust_reddit;
         use rust_reddit::api::path_query;
         use rust_reddit::cli::Args;
         let mut args = Args::default();
@@ -98,9 +104,13 @@ macro_rules! rquery {
 }
 
 #[cfg(test)]
-mod test_path_query {
+mod test_api {
     #[test]
-    fn path_query_() {
-        let args = Args::default();
+    fn test_gen_request_uri() {
+        use api::gen_request_uri;
+
+        let expected_output = "https://www.reddit.com/r/rust/top/.json?count=20".to_owned();
+        let actual_output = gen_request_uri("/r/rust/top/.json?count=20");
+        assert!(expected_output == actual_output);
     }
 }

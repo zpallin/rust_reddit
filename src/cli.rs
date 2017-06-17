@@ -30,7 +30,9 @@ impl Default for Args {
 /// extern crate rust_reddit;
 /// use rust_reddit::cli;
 ///
-/// let args = cli::get_args();
+/// fn main() {
+///     let args = cli::get_args();
+/// }
 /// ```
 ///
 pub fn get_args() -> Args {
@@ -62,6 +64,7 @@ pub fn get_args() -> Args {
 mod tests {
     #[test]
     fn it_works() {
+        use cli::get_args;
         let args = get_args();
     }
 }
