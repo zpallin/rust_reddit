@@ -1,7 +1,6 @@
 
 use serde_json::Error;
 use argparse::{ArgumentParser, Store};
-use std::collections::HashMap;
 
 /// Struct for gathering cli arguments.
 ///
@@ -25,7 +24,6 @@ impl Default for Args {
 /// Gets the arguments from the command line, in case you are 
 /// leveraging this as a command line tool.
 ///
-/// # Example:
 /// ```
 /// extern crate rust_reddit;
 /// use rust_reddit::cli;
@@ -62,9 +60,24 @@ pub fn get_args() -> Args {
 
 #[cfg(test)]
 mod tests {
+    extern crate serde_json;
+    use serde_json::to_string as json_to_string;
+    use cli::Args;
+    use cli::get_args;
+
     #[test]
-    fn it_works() {
+    fn test_get_args() {
+        // Since I am not mocking ArgumentParser, it is not tested properly
+        // instead, all I am doing is demonstrating that the args returned
+        // will remain default as get_args returns args and by default
+        // they are Args::default()
+        // This is... okay for now
+
         use cli::get_args;
-        let args = get_args();
+        let args_s = json_to_string(&get_args()).unwrap();
+        let args_expected = json_to_string(&Args::default()).unwrap(); 
+
+        assert!(args_s == args_expected);
+        
     }
 }
