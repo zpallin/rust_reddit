@@ -11,12 +11,14 @@ use serde_json;
 // internal imports
 use cli::*;
 
+////////////////////////////////////////////////////////////////////////////////
 /// Generates request full uri
 ///
 fn gen_request_uri(search: &str) -> String{
     format!("https://www.reddit.com{}", search).to_owned()
 }
 
+////////////////////////////////////////////////////////////////////////////////
 /// Generates a curl::easy::List from HashMap, formats headers
 ///
 fn gen_headers(header_string : String) -> List {
@@ -27,6 +29,7 @@ fn gen_headers(header_string : String) -> List {
     list
 }
 
+////////////////////////////////////////////////////////////////////////////////
 /// Those pesky list structs need to be easier to handle for things
 /// like tests and print statements, so here we go
 ///
@@ -38,6 +41,7 @@ fn return_vec_from_list(list : List) -> Vec<String> {
     }).collect()
 }
 
+////////////////////////////////////////////////////////////////////////////////
 /// Takes a formatted curl struct and generates output from a query
 /// sending it back to the caller as a string of JSON
 ///
@@ -62,6 +66,7 @@ pub fn get_output_from_transfer(easy : &mut Easy) -> String {
     output
 }
 
+////////////////////////////////////////////////////////////////////////////////
 /// Queries the reddit api with a string, returns a serde_json::Value
 ///
 /// # Examples
@@ -92,6 +97,7 @@ pub fn path_query(search_string: &str, args: Args) -> serde_json::Value {
     serde_json::from_str(&output).unwrap()
 }
 
+////////////////////////////////////////////////////////////////////////////////
 #[macro_export]
 macro_rules! rquery {
     ( $q:expr ) => {{
@@ -117,6 +123,7 @@ macro_rules! rquery {
     }}
 }
 
+////////////////////////////////////////////////////////////////////////////////
 #[cfg(test)]
 mod test_api {
 
