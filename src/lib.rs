@@ -11,8 +11,9 @@
 //! extern crate rust_reddit;
 //! 
 //! fn main(){
-//!     let data = rquery!(
-//!         "/r/rust/top/.json?count=20",
+//!     let data = reddit!(
+//!         "rust",
+//!         "top/.json?count=20",
 //!         "headers" => "User-Agent: rust-reddit-test");
 //! 
 //!     println!("{}", data);
@@ -21,6 +22,7 @@
 //! ```
 //!
 
+
 extern crate curl;
 extern crate argparse;
 extern crate serde;
@@ -28,9 +30,6 @@ extern crate serde_json;
 
 #[macro_use] 
 extern crate serde_derive;
-
-pub use self::api::path_query;
-pub use self::cli::get_args;
 
 #[macro_use]
 pub mod api;
