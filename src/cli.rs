@@ -73,7 +73,7 @@ mod tests {
   use cli::Args;
   use cli::get_args;
 
-#[test]
+  #[test]
   fn test_get_args() {
     // Since I am not mocking ArgumentParser, it is not tested properly
     // instead, all I am doing is demonstrating that the args returned
@@ -82,8 +82,20 @@ mod tests {
     // This is... okay for now
 
     use cli::get_args;
-    let args_s = json_to_string(&get_args()).unwrap();
-    let args_expected = json_to_string(&Args::default()).unwrap(); 
+    let args = get_args();
+    let mut expected = Args::default();
+
+    // strangely enough, in order to pass nocapture without failure, we
+    // must set the "expected / default" value to whatever is being passed
+    // or else the test will fail when we pass nocapture in a test
+    // thereby defeating the purpose of nocapture
+    expected.nocapture = args.nocapture;
+
+    let args_s = json_to_string(&args).unwrap();
+    let mut args_expected = json_to_string(&expected).unwrap();
+
+    println!("{}", args_s);
+    println!("{}", args_expected);
 
     assert!(args_s == args_expected);
 

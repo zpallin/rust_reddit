@@ -43,7 +43,7 @@ impl Rreq {
   pub fn new(sub: &str, req: &str) -> Self {
     Rreq {
       sub : sub.to_owned(),
-      req : "".to_owned(),
+      req : req.to_owned(),
       args  : Args::default(),
       data : None,
     }
@@ -133,7 +133,7 @@ impl Rreq {
 /// Generates request full uri
 ///
 fn gen_request_uri(search: &str) -> String{
-  format!("https://www.reddit.com{}", search).to_owned()
+  format!("https://www.reddit.com/r/{}", search).to_owned()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -243,18 +243,18 @@ macro_rules! rquery {
 
 #[macro_export]
 macro_rules! reddit {
-  ( $q:expr ) => {{
+  ( $sub:expr ) => {{
+    extern crate rust_reddit;
+    use rust_reddit::api::{Rreq, Rdata};
+    let rreq = Rreq::stub($sub);
+    rreq.query()
+  }};
+  ( $sub:expr, $($key:expr => $val:expr),* ) => {{
     extern crate rust_reddit;
     use rust_reddit::api::{Rreq, Rdata};
     use rust_reddit::cli::Args;
-    let rreq = Rreq::stub();
-    rreq.query()
-  }};
-  ( $q:expr, $($key:expr => $val:expr),* ) => {{
-    extern crate rust_reddit;
-    use rust_reddit::api::path_query;
-    use rust_reddit::cli::Args;
     let mut args = Args::default();
+    let mut rreq = Rreq::stub($sub);
     $(
         let val = $val.to_string();
         match $key {
@@ -262,9 +262,33 @@ macro_rules! reddit {
         "headers" => args.headers = val,
         _ => (),
         }
-     )*
-      path_query($q, args)
-  }}
+    )*
+    rreq.args = args;
+    rreq.query();
+  }};
+  ( $sub:expr, $query:expr ) => {{
+    extern crate rust_reddit;
+    use rust_reddit::api::{Rreq, Rdata};
+    let rreq = Rreq::new($sub, $query);
+    rreq.query();
+  }};
+  ( $sub:expr, $query:expr, $($key:expr => $val:expr),* ) => {{
+    extern crate rust_reddit;
+    use rust_reddit::api::{Rreq, Rdata};
+    use rust_reddit::cli::Args;
+    let mut args = Args::default();
+    let mut rreq = Rreq::new($sub, $query);
+    $(
+      let val = $val.to_string();
+      match $key {
+      "key" => args.key = val,
+      "headers" => args.headers = val,
+      _ => (),
+      }
+    )*
+    rreq.args = args;
+    rreq.query();
+  }};
 }
 ////////////////////////////////////////////////////////////////////////////////
 #[cfg(test)]
@@ -280,7 +304,9 @@ mod test_api {
   fn test_gen_request_uri() {
 
     let expected = "https://www.reddit.com/r/rust/top/.json?count=20".to_owned();
-    let actual = gen_request_uri("/r/rust/top/.json?count=20");
+    let rreq = Rreq::new("rust", "top/.json?count=20");
+    let actual = rreq.uri();
+    println!("{}", actual);
     assert!(expected == actual);
   }
 
@@ -328,7 +354,7 @@ mod test_api {
     let rreq : Rreq = Rreq::stub("rust");
 
     // for the time being, tests will query the web and print for "nocapture" debugging
-    println!("{:?}", rreq.uri());
-    println!("{}", rreq.query());
+    //println!("{:?}", rreq.uri());
+    //println!("{}", rreq.query());
   }
 }
