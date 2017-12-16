@@ -133,17 +133,16 @@ impl Rreq {
   /// extern crate rust_reddit;
   /// use rust_reddit::api;
   /// use rust_reddit::cli;
-  /// use serde_json::{Value,Error};
   /// 
   /// fn main() {
   ///     let args = cli::get_args();
   ///     let rreq = api::Rreq::full("rust", "top/.json?count=20", args);
   ///     let res = rreq.query();
+  ///     println!("{}", res);
   /// }
   /// ```
   ///
-  //pub fn query(&self, args: Args) -> serde_json::Value {
-  pub fn query(&self) -> String {
+  pub fn query(&self) -> serde_json::Value {
 
     let mut easy = Easy::new();
 
@@ -152,9 +151,7 @@ impl Rreq {
 
     let output = self.web_request(&mut easy);
 
-    //serde_json::from_str(&output).unwrap()
-    //serde_json::from_str("{}").unwrap();
-    output
+    serde_json::from_str(&output).unwrap()
   }
 }
 
@@ -275,7 +272,7 @@ mod test_api {
     let rreq : Rreq = Rreq::stub("rust");
 
     // for the time being, tests will query the web and print for "nocapture" debugging
-    //println!("{:?}", rreq.uri());
-    //println!("{}", rreq.query());
+    println!("{:?}", rreq.uri());
+    println!("{}", rreq.query());
   }
 }
