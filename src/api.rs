@@ -1,6 +1,4 @@
 
-#![feature(macro_rules)]
-
 // external imports
 //use std::io::{stdout, Write};
 use std::sync::RwLock;
@@ -16,7 +14,7 @@ use cli::*;
 /// like tests and print statements, so here we go
 ///
 fn return_vec_from_list(list : List) -> Vec<String> {
-    let mut iter = list.iter();
+    let iter = list.iter();
 
     iter.map(|res|{ 
         str_from_utf8(res).unwrap().to_string()
@@ -95,7 +93,10 @@ impl Rreq {
   fn headers(&self) -> List {
     let mut list = List::new();
     for header in self.args.headers.split(",") {
-      list.append(header);
+      match list.append(header) {
+        Ok(v) => (v),
+        Err(e) => panic!(format!("{}", e)),
+      }
     }
     list
   }
@@ -142,7 +143,7 @@ impl Rreq {
   /// }
   /// ```
   ///
-  pub fn query(&self) -> serde_json::Value {
+  pub fn query(&self) -> String { //serde_json::Value {
 
     let mut easy = Easy::new();
 
@@ -151,7 +152,8 @@ impl Rreq {
 
     let output = self.web_request(&mut easy);
 
-    serde_json::from_str(&output).unwrap()
+    output
+    //serde_json::from_str(&output).unwrap()
   }
 }
 
@@ -159,13 +161,13 @@ impl Rreq {
 macro_rules! reddit {
   ( $sub:expr ) => {{
     extern crate rust_reddit;
-    use rust_reddit::api::{Rreq, Rdata};
+    use rust_reddit::api::Rreq;
     let rreq = Rreq::stub($sub);
     rreq.query()
   }};
   ( $sub:expr, $($key:expr => $val:expr),* ) => {{
     extern crate rust_reddit;
-    use rust_reddit::api::{Rreq, Rdata};
+    use rust_reddit::api::Rreq;
     use rust_reddit::cli::Args;
     let mut args = Args::default();
     let mut rreq = Rreq::stub($sub);
@@ -182,13 +184,13 @@ macro_rules! reddit {
   }};
   ( $sub:expr, $query:expr ) => {{
     extern crate rust_reddit;
-    use rust_reddit::api::{Rreq, Rdata};
+    use rust_reddit::api::Rreq;
     let rreq = Rreq::new($sub, $query);
     rreq.query()
   }};
   ( $sub:expr, $query:expr, $($key:expr => $val:expr),* ) => {{
     extern crate rust_reddit;
-    use rust_reddit::api::{Rreq, Rdata};
+    use rust_reddit::api::Rreq;
     use rust_reddit::cli::Args;
     let mut args = Args::default();
     let mut rreq = Rreq::new($sub, $query);
@@ -269,10 +271,11 @@ mod test_api {
 
   #[test]
   fn test_rreq() {
+    use serde_json::Value;
     let rreq : Rreq = Rreq::stub("rust");
 
     // for the time being, tests will query the web and print for "nocapture" debugging
-    println!("{:?}", rreq.uri());
-    println!("{}", rreq.query());
+    println!("- test_rreq: {}", rreq.uri());
+    println!("- test_rreq: {}", rreq.query());
   }
 }
