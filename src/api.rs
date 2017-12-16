@@ -11,22 +11,125 @@ use serde_json;
 // internal imports
 use cli::*;
 
+#[derive(Serialize, Deserialize, Debug)]
+pub enum Rdata {
+  String,
+  None,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Rreq {
+  sub : String,
+  req : String,
+  data : Option<String>,
+}
+
+impl Rreq {
+  //////////////////////////////////////////////////////////////////////////////
+  pub fn new(sub: &str, req: &str) -> Self {
+    Rreq { 
+      sub : sub.to_owned(),
+      req : req.to_owned(),
+      data : None,
+    }
+  }
+
+  //////////////////////////////////////////////////////////////////////////////
+  /// Generates request full uri
+  ///
+  pub fn gen_uri(&self) -> String{
+    format!("https://www.reddit.com/r/{}/{}", self.sub, self.req).to_owned()
+  }
+
+  //////////////////////////////////////////////////////////////////////////////
+  /// Generates a curl::easy::List from HashMap, formats headers
+  ///
+  fn gen_headers(&self, header_string : String) -> List {
+    let mut list = List::new();
+    for header in header_string.split(",") {
+      list.append(header);
+    }
+    list
+  }
+
+  //////////////////////////////////////////////////////////////////////////////
+  /// Takes a formatted curl struct and generates output from a query
+  /// sending it back to the caller as a string of JSON
+  ///
+  /// Unfortunately, due to the complexity of the code here as well as
+  /// the fact that this workload here is mostly dependent on code in another
+  /// code base, rather than custom unit logic, this remains untested
+  ///
+  pub fn web_request(&self, easy : &mut Easy) -> String {
+    let output_locker : RwLock<Vec<String>>= RwLock::new(Vec::new());
+    let mut transfer = easy.transfer();
+
+    transfer.write_function(|data| {
+        let mut write_rwlock = output_locker.write().unwrap();
+        write_rwlock.push(
+            str_from_utf8(data).unwrap().to_string());
+        Ok(data.len())
+        }).unwrap();
+
+    transfer.perform().unwrap();
+
+    let output = output_locker.read().unwrap().clone().join("");
+    output
+  }
+
+  //////////////////////////////////////////////////////////////////////////////
+  /// Queries the reddit api with a string, returns a serde_json::Value
+  ///
+  /// # Examples
+  ///
+  /// ```
+  /// extern crate serde_json;
+  /// extern crate rust_reddit;
+  /// use rust_reddit::api;
+  /// use rust_reddit::cli;
+  /// use serde_json::{Value,Error};
+  /// 
+  /// fn main() {
+  ///     let args = cli::get_args();
+  ///     let res = api::path_query("/r/rust/top/.json?count=20", args);
+  /// }
+  /// ```
+  ///
+  //pub fn query(&self, args: Args) -> serde_json::Value {
+  pub fn query(&self, args: Args) -> String {
+
+    let mut easy = Easy::new();
+    let mut list = List::new();
+
+    easy.url(&self.gen_uri()).unwrap();
+    easy.http_headers(self.gen_headers(args.headers)).unwrap();
+
+    let output = get_output_from_transfer(&mut easy);
+
+    //serde_json::from_str(&output).unwrap()
+    //serde_json::from_str("{}").unwrap();
+    output
+  }
+}
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 /// Generates request full uri
 ///
 fn gen_request_uri(search: &str) -> String{
-    format!("https://www.reddit.com{}", search).to_owned()
+  format!("https://www.reddit.com{}", search).to_owned()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Generates a curl::easy::List from HashMap, formats headers
 ///
 fn gen_headers(header_string : String) -> List {
-    let mut list = List::new();
-    for header in header_string.split(",") {
-        list.append(header);
-    }
-    list
+  let mut list = List::new();
+  for header in header_string.split(",") {
+    list.append(header);
+  }
+  list
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -34,11 +137,11 @@ fn gen_headers(header_string : String) -> List {
 /// like tests and print statements, so here we go
 ///
 fn return_vec_from_list(list : List) -> Vec<String> {
-    let mut iter = list.iter();
+  let mut iter = list.iter();
 
-    iter.map(|res|{ 
-        str_from_utf8(res).unwrap().to_string()
-    }).collect()
+  iter.map(|res|{ 
+      str_from_utf8(res).unwrap().to_string()
+      }).collect()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -50,20 +153,20 @@ fn return_vec_from_list(list : List) -> Vec<String> {
 /// code base, rather than custom unit logic, this remains untested
 ///
 pub fn get_output_from_transfer(easy : &mut Easy) -> String {
-    let output_locker : RwLock<Vec<String>>= RwLock::new(Vec::new());
-    let mut transfer = easy.transfer();
+  let output_locker : RwLock<Vec<String>>= RwLock::new(Vec::new());
+  let mut transfer = easy.transfer();
 
-    transfer.write_function(|data| {
-        let mut write_rwlock = output_locker.write().unwrap();
-        write_rwlock.push(
-            str_from_utf8(data).unwrap().to_string());
-        Ok(data.len())
-    }).unwrap();
-    
-    transfer.perform().unwrap();
-    
-    let output = output_locker.read().unwrap().clone().join("");
-    output
+  transfer.write_function(|data| {
+      let mut write_rwlock = output_locker.write().unwrap();
+      write_rwlock.push(
+          str_from_utf8(data).unwrap().to_string());
+      Ok(data.len())
+      }).unwrap();
+
+  transfer.perform().unwrap();
+
+  let output = output_locker.read().unwrap().clone().join("");
+  output
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -86,98 +189,108 @@ pub fn get_output_from_transfer(easy : &mut Easy) -> String {
 ///
 pub fn path_query(search_string: &str, args: Args) -> serde_json::Value {
 
-    let mut easy = Easy::new();
-    let mut list = List::new();
+  let mut easy = Easy::new();
+  let mut list = List::new();
 
-    easy.url(&gen_request_uri(search_string)).unwrap();
-    easy.http_headers(gen_headers(args.headers)).unwrap();
+  easy.url(&gen_request_uri(search_string)).unwrap();
+  easy.http_headers(gen_headers(args.headers)).unwrap();
 
-    let output = get_output_from_transfer(&mut easy);
+  let output = get_output_from_transfer(&mut easy);
 
-    serde_json::from_str(&output).unwrap()
+  serde_json::from_str(&output).unwrap()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 #[macro_export]
 macro_rules! rquery {
-    ( $q:expr ) => {{
-        extern crate rust_reddit;
-        use rust_reddit::api::path_query;
-        use rust_reddit::cli::Args;
-        path_query($q, Args::default())
-    }};
-    ( $q:expr, $($key:expr => $val:expr),* ) => {{
-        extern crate rust_reddit;
-        use rust_reddit::api::path_query;
-        use rust_reddit::cli::Args;
-        let mut args = Args::default();
-        $(
-            let val = $val.to_string();
-            match $key {
-                "key" => args.key = val,
-                "headers" => args.headers = val,
-                _ => (),
-            }
-        )*
-        path_query($q, args)
-    }}
+  ( $q:expr ) => {{
+    extern crate rust_reddit;
+    use rust_reddit::api::path_query;
+    use rust_reddit::cli::Args;
+    path_query($q, Args::default())
+  }};
+  ( $q:expr, $($key:expr => $val:expr),* ) => {{
+    extern crate rust_reddit;
+    use rust_reddit::api::path_query;
+    use rust_reddit::cli::Args;
+    let mut args = Args::default();
+    $(
+        let val = $val.to_string();
+        match $key {
+        "key" => args.key = val,
+        "headers" => args.headers = val,
+        _ => (),
+        }
+     )*
+      path_query($q, args)
+  }}
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 #[cfg(test)]
 mod test_api {
 
-    use api::gen_headers;
-    use api::gen_request_uri;
-    use api::return_vec_from_list;
-    use curl::easy::List;
+  use api::{Rreq, Rdata};
+  use api::gen_headers;
+  use api::gen_request_uri;
+  use api::return_vec_from_list;
+  use curl::easy::List;
 
-    #[test]
-    fn test_gen_request_uri() {
+  #[test]
+  fn test_gen_request_uri() {
 
-        let expected = "https://www.reddit.com/r/rust/top/.json?count=20".to_owned();
-        let actual = gen_request_uri("/r/rust/top/.json?count=20");
-        assert!(expected == actual);
-    }
+    let expected = "https://www.reddit.com/r/rust/top/.json?count=20".to_owned();
+    let actual = gen_request_uri("/r/rust/top/.json?count=20");
+    assert!(expected == actual);
+  }
 
-    #[test]
-    fn test_return_vec_from_list() {
-        let mut list = List::new();
-        list.append("User-Agent: test-user");
-        list.append("Host: fake.com");
+  #[test]
+  fn test_return_vec_from_list() {
+    let mut list = List::new();
+    list.append("User-Agent: test-user");
+    list.append("Host: fake.com");
 
-        let expect: Vec<String> = vec![
-            "User-Agent: test-user".to_string(), 
-            "Host: fake.com".to_string()];
+    let expect: Vec<String> = vec![
+      "User-Agent: test-user".to_string(), 
+      "Host: fake.com".to_string()];
 
-        // will fail if this is not a Vec<String>
-        let actual: Vec<String> = return_vec_from_list(list);
-        let actual_s: String = actual.into_iter().collect();
-        let expect_s: String = expect.into_iter().collect();
+    // will fail if this is not a Vec<String>
+    let actual: Vec<String> = return_vec_from_list(list);
+    let actual_s: String = actual.into_iter().collect();
+    let expect_s: String = expect.into_iter().collect();
 
-        assert!(expect_s == actual_s);
-    }
+    assert!(expect_s == actual_s);
+  }
 
-    #[test]
-    fn test_gen_headers() {
+  #[test]
+  fn test_gen_headers() {
 
-        let mut expect_list = List::new();
-        expect_list.append("User-Agent: test-user");
-        expect_list.append("Host: fake.com");
+    let mut expect_list = List::new();
+    expect_list.append("User-Agent: test-user");
+    expect_list.append("Host: fake.com");
 
-        let mut wrong_list = List::new();
-        wrong_list.append("User-Agent: not-user");
-        wrong_list.append("Host: wrong.org");
+    let mut wrong_list = List::new();
+    wrong_list.append("User-Agent: not-user");
+    wrong_list.append("Host: wrong.org");
 
-        let actual_list = gen_headers("User-Agent: test-user,Host: fake.com".to_owned());
+    let actual_list = gen_headers("User-Agent: test-user,Host: fake.com".to_owned());
 
-        let actual: String = return_vec_from_list(actual_list).into_iter().collect();
-        let expect: String = return_vec_from_list(expect_list).into_iter().collect();
-        let wrong: String = return_vec_from_list(wrong_list).into_iter().collect();
-   
-        assert!(actual == expect);
-        assert!(actual != wrong);
-    }
+    let actual: String = return_vec_from_list(actual_list).into_iter().collect();
+    let expect: String = return_vec_from_list(expect_list).into_iter().collect();
+    let wrong: String = return_vec_from_list(wrong_list).into_iter().collect();
 
+    assert!(actual == expect);
+    assert!(actual != wrong);
+  }
 
+  #[test]
+  fn test_rreq() {
+    use cli::Args;
+    let args = Args::default();
+    let rreq : Rreq = Rreq::new("rust",  "");
+
+    // for the time being, tests will query the web and print for "nocapture" debugging
+    println!("{:?}", rreq.gen_uri());
+    println!("{}", rreq.query(args));
+  }
 }
