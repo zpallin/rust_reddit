@@ -4,7 +4,7 @@ use argparse::{ArgumentParser, Store, StoreTrue, StoreFalse};
 
 /// Struct for gathering cli arguments.
 ///
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Args {
   pub key: String,
   pub headers: String,

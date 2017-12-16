@@ -21,15 +21,30 @@ pub enum Rdata {
 pub struct Rreq {
   sub : String,
   req : String,
+  args : Args,
   data : Option<String>,
 }
 
 impl Rreq {
   //////////////////////////////////////////////////////////////////////////////
-  pub fn new(sub: &str, req: &str) -> Self {
+  /// for ergonomics, generates a Rreq struct without a request string
+  ///
+  pub fn stub(sub: &str) -> Self {
     Rreq { 
       sub : sub.to_owned(),
-      req : req.to_owned(),
+      req : "".to_owned(),
+      args : Args::default(),
+      data : None,
+    }
+  }
+
+  /// generates a Rreq struct with a request string
+  ///
+  pub fn new(sub: &str, req: &str) -> Self {
+    Rreq {
+      sub : sub.to_owned(),
+      req : "".to_owned(),
+      args  : Args::default(),
       data : None,
     }
   }
@@ -37,16 +52,16 @@ impl Rreq {
   //////////////////////////////////////////////////////////////////////////////
   /// Generates request full uri
   ///
-  pub fn gen_uri(&self) -> String{
+  pub fn uri(&self) -> String{
     format!("https://www.reddit.com/r/{}/{}", self.sub, self.req).to_owned()
   }
 
   //////////////////////////////////////////////////////////////////////////////
   /// Generates a curl::easy::List from HashMap, formats headers
   ///
-  fn gen_headers(&self, header_string : String) -> List {
+  fn headers(&self) -> List {
     let mut list = List::new();
-    for header in header_string.split(",") {
+    for header in self.args.headers.split(",") {
       list.append(header);
     }
     list
@@ -96,15 +111,15 @@ impl Rreq {
   /// ```
   ///
   //pub fn query(&self, args: Args) -> serde_json::Value {
-  pub fn query(&self, args: Args) -> String {
+  pub fn query(&self) -> String {
 
     let mut easy = Easy::new();
     let mut list = List::new();
 
-    easy.url(&self.gen_uri()).unwrap();
-    easy.http_headers(self.gen_headers(args.headers)).unwrap();
+    easy.url(&self.uri()).unwrap();
+    easy.http_headers(self.headers()).unwrap();
 
-    let output = get_output_from_transfer(&mut easy);
+    let output = self.web_request(&mut easy);
 
     //serde_json::from_str(&output).unwrap()
     //serde_json::from_str("{}").unwrap();
@@ -226,6 +241,31 @@ macro_rules! rquery {
   }}
 }
 
+#[macro_export]
+macro_rules! reddit {
+  ( $q:expr ) => {{
+    extern crate rust_reddit;
+    use rust_reddit::api::{Rreq, Rdata};
+    use rust_reddit::cli::Args;
+    let rreq = Rreq::stub();
+    rreq.query()
+  }};
+  ( $q:expr, $($key:expr => $val:expr),* ) => {{
+    extern crate rust_reddit;
+    use rust_reddit::api::path_query;
+    use rust_reddit::cli::Args;
+    let mut args = Args::default();
+    $(
+        let val = $val.to_string();
+        match $key {
+        "key" => args.key = val,
+        "headers" => args.headers = val,
+        _ => (),
+        }
+     )*
+      path_query($q, args)
+  }}
+}
 ////////////////////////////////////////////////////////////////////////////////
 #[cfg(test)]
 mod test_api {
@@ -285,12 +325,10 @@ mod test_api {
 
   #[test]
   fn test_rreq() {
-    use cli::Args;
-    let args = Args::default();
-    let rreq : Rreq = Rreq::new("rust",  "");
+    let rreq : Rreq = Rreq::stub("rust");
 
     // for the time being, tests will query the web and print for "nocapture" debugging
-    println!("{:?}", rreq.gen_uri());
-    println!("{}", rreq.query(args));
+    println!("{:?}", rreq.uri());
+    println!("{}", rreq.query());
   }
 }
