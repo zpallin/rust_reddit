@@ -3,9 +3,9 @@
 extern crate rust_reddit;
 
 fn main(){
-    let data = rquery!(
+    let data = reddit!(
         "/r/rust/top/.json?count=20",
         "headers" => "User-Agent: rust-reddit-test");
 
-    println!("{}", data);
+    println!("{:?}", data);
 }
