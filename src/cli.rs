@@ -1,6 +1,5 @@
 
-use serde_json::Error;
-use argparse::{ArgumentParser, Store, StoreTrue, StoreFalse};
+use argparse::{ArgumentParser, Store, StoreTrue};
 
 /// Struct for gathering cli arguments.
 ///
@@ -36,9 +35,6 @@ impl Default for Args {
 /// ```
 ///
 pub fn get_args() -> Args {
-  ///
-  /// Argument parsing goes here
-  ///
   let mut args = Args::default();
   {
     let mut ap = ArgumentParser::new();
