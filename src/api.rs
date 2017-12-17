@@ -5,6 +5,7 @@ use std::sync::RwLock;
 use curl::easy::{Easy, List};
 use std::str::from_utf8 as str_from_utf8;
 use serde_json;
+use serde_json::{Value, Error};
 
 // internal imports
 use cli::*;
@@ -139,11 +140,11 @@ impl Rreq {
   ///     let args = cli::get_args();
   ///     let rreq = api::Rreq::full("rust", "top/.json?count=20", args);
   ///     let res = rreq.query();
-  ///     println!("{}", res);
+  ///     println!("{:?}", res);
   /// }
   /// ```
   ///
-  pub fn query(&self) -> String { //serde_json::Value {
+  pub fn query(&self) -> Result<Value, Error>  {
 
     let mut easy = Easy::new();
 
@@ -152,8 +153,7 @@ impl Rreq {
 
     let output = self.web_request(&mut easy);
 
-    output
-    //serde_json::from_str(&output).unwrap()
+    serde_json::from_str(&output)
   }
 }
 
@@ -163,7 +163,7 @@ macro_rules! reddit {
     extern crate rust_reddit;
     use rust_reddit::api::Rreq;
     let rreq = Rreq::stub($sub);
-    rreq.query()
+    rreq.query().unwrap()
   }};
   ( $sub:expr, $($key:expr => $val:expr),* ) => {{
     extern crate rust_reddit;
@@ -180,13 +180,13 @@ macro_rules! reddit {
         }
     )*
     rreq.args = args;
-    rreq.query()
+    rreq.query().unwrap()
   }};
   ( $sub:expr, $query:expr ) => {{
     extern crate rust_reddit;
     use rust_reddit::api::Rreq;
     let rreq = Rreq::new($sub, $query);
-    rreq.query()
+    rreq.query().unwrap()
   }};
   ( $sub:expr, $query:expr, $($key:expr => $val:expr),* ) => {{
     extern crate rust_reddit;
@@ -203,7 +203,7 @@ macro_rules! reddit {
       }
     )*
     rreq.args = args;
-    rreq.query()
+    rreq.query().unwrap()
   }};
 }
 ////////////////////////////////////////////////////////////////////////////////
@@ -217,8 +217,8 @@ mod test_api {
   #[test]
   fn test_gen_request_uri() {
 
-    let expected = "https://www.reddit.com/r/rust/top/.json?count=20".to_owned();
-    let rreq = Rreq::new("rust", "top/.json?count=20");
+    let expected = "https://www.reddit.com/r/rust/top.json?count=1".to_owned();
+    let rreq = Rreq::new("rust", "top.json?count=1");
     let actual = rreq.uri();
     println!("{}", actual);
     assert!(expected == actual);
@@ -276,6 +276,6 @@ mod test_api {
 
     // for the time being, tests will query the web and print for "nocapture" debugging
     println!("- test_rreq: {}", rreq.uri());
-    println!("- test_rreq: {}", rreq.query());
+    println!("- test_rreq: {:?}", rreq.query());
   }
 }
