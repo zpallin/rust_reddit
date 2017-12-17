@@ -1,6 +1,6 @@
 [package]
 name = "rust_reddit"
-version = "0.0.5"
+version = "0.0.6"
 authors = ["zpallin <zpallin@gmail.com>"]
 
 [dependencies]
