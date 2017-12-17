@@ -10,17 +10,12 @@ use serde_json::{Value, Error};
 // internal imports
 use cli::*;
 
-////////////////////////////////////////////////////////////////////////////////
-/// Those pesky list structs need to be easier to handle for things
-/// like tests and print statements, so here we go
-///
-fn return_vec_from_list(list : List) -> Vec<String> {
-    let iter = list.iter();
-
-    iter.map(|res|{ 
-        str_from_utf8(res).unwrap().to_string()
-    }).collect()
+pub mod prelude {
+  pub use api::{Rreq, Rdata, Initializer, Request};
 }
+
+////////////////////////////////////////////////////////////////////////////////
+
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Rdata and Rreq struct definitions
@@ -38,10 +33,19 @@ pub struct Rreq {
   pub data : Option<String>,
 }
 
-impl Rreq {
+////////////////////////////////////////////////////////////////////////////////
+/// Initializer
+/// Handles all Rreq Initialization methods
+pub trait Initializer {
+  fn stub(&str) -> Self;
+  fn new(&str, &str) -> Self;
+  fn args(&str, Args) -> Self;
+  fn full(&str, &str, Args) -> Self;
+}
+
+impl Initializer for Rreq {
   /// for ergonomics, generates a Rreq struct without a request string
-  ///
-  pub fn stub(sub: &str) -> Self {
+  fn stub(sub: &str) -> Self {
     Rreq { 
       sub : sub.to_owned(),
       req : "".to_owned(),
@@ -51,8 +55,7 @@ impl Rreq {
   }
 
   /// generates a Rreq struct with a request string
-  ///
-  pub fn new(sub: &str, req: &str) -> Self {
+  fn new(sub: &str, req: &str) -> Self {
     Rreq {
       sub : sub.to_owned(),
       req : req.to_owned(),
@@ -62,8 +65,7 @@ impl Rreq {
   }
 
   /// generate with args
-  ///
-  pub fn args(sub: &str, args: Args) -> Self {
+  fn args(sub: &str, args: Args) -> Self {
     Rreq {
       sub : sub.to_owned(),
       req : "".to_owned(),
@@ -73,8 +75,7 @@ impl Rreq {
   }
 
   /// generate with args and request
-  ///
-  pub fn full(sub: &str, req: &str, args: Args) -> Self {
+  fn full(sub: &str, req: &str, args: Args) -> Self {
     Rreq {
       sub : sub.to_owned(),
       req : req.to_owned(),
@@ -82,22 +83,30 @@ impl Rreq {
       data : None,
     }
   }
+}
 
+////////////////////////////////////////////////////////////////////////////////
+/// Request 
+/// The baseline request interface used to make calls to reddit
+
+pub trait Request {
+  fn uri(&self) -> String;
+  fn headers(&self) -> List;
+  fn request(&self, &mut Easy) -> String;
+  fn query(&self) -> Result<Value, Error>;
+}
+
+impl Request for Rreq {
   /// Generates request full uri
-  ///
-  pub fn uri(&self) -> String{
+  fn uri(&self) -> String{
     format!("https://www.reddit.com/r/{}/{}", self.sub, self.req).to_owned()
   }
 
   /// Generates a curl::easy::List from HashMap, formats headers
-  ///
   fn headers(&self) -> List {
     let mut list = List::new();
     for header in self.args.headers.split(",") {
-      match list.append(header) {
-        Ok(v) => (v),
-        Err(e) => panic!(format!("{}", e)),
-      }
+      list.append(header).unwrap();
     }
     list
   }
@@ -109,7 +118,7 @@ impl Rreq {
   /// the fact that this workload here is mostly dependent on code in another
   /// code base, rather than custom unit logic, this remains untested
   ///
-  pub fn web_request(&self, easy : &mut Easy) -> String {
+  fn request(&self, easy : &mut Easy) -> String {
     let output_locker : RwLock<Vec<String>>= RwLock::new(Vec::new());
     let mut transfer = easy.transfer();
 
@@ -133,25 +142,28 @@ impl Rreq {
   /// ```
   /// extern crate serde_json;
   /// extern crate rust_reddit;
-  /// use rust_reddit::api;
+  /// use rust_reddit::api::prelude::*;
   /// use rust_reddit::cli;
   /// 
   /// fn main() {
-  ///     let args = cli::get_args();
-  ///     let rreq = api::Rreq::full("rust", "top/.json?count=20", args);
+  ///     let rreq = Rreq::full(
+  ///       "rust", 
+  ///       "top/.json?count=20", 
+  ///       cli::get_args());
+  ///
   ///     let res = rreq.query();
   ///     println!("{:?}", res);
   /// }
   /// ```
   ///
-  pub fn query(&self) -> Result<Value, Error>  {
+  fn query(&self) -> Result<Value, Error>  {
 
     let mut easy = Easy::new();
 
     easy.url(&self.uri()).unwrap();
     easy.http_headers(self.headers()).unwrap();
 
-    let output = self.web_request(&mut easy);
+    let output = self.request(&mut easy);
 
     serde_json::from_str(&output)
   }
@@ -161,14 +173,16 @@ impl Rreq {
 macro_rules! reddit {
   ( $sub:expr ) => {{
     extern crate rust_reddit;
-    use rust_reddit::api::Rreq;
+    use rust_reddit::api::prelude::*;
+
     let rreq = Rreq::stub($sub);
     rreq.query().unwrap()
   }};
   ( $sub:expr, $($key:expr => $val:expr),* ) => {{
     extern crate rust_reddit;
-    use rust_reddit::api::Rreq;
     use rust_reddit::cli::Args;
+    use rust_reddit::api::prelude::*;
+
     let mut args = Args::default();
     let mut rreq = Rreq::stub($sub);
     $(
@@ -184,14 +198,16 @@ macro_rules! reddit {
   }};
   ( $sub:expr, $query:expr ) => {{
     extern crate rust_reddit;
-    use rust_reddit::api::Rreq;
+    use rust_reddit::api::prelude::*;
+
     let rreq = Rreq::new($sub, $query);
     rreq.query().unwrap()
   }};
   ( $sub:expr, $query:expr, $($key:expr => $val:expr),* ) => {{
     extern crate rust_reddit;
-    use rust_reddit::api::Rreq;
+    use rust_reddit::api::prelude::*;
     use rust_reddit::cli::Args;
+
     let mut args = Args::default();
     let mut rreq = Rreq::new($sub, $query);
     $(
@@ -210,9 +226,21 @@ macro_rules! reddit {
 #[cfg(test)]
 mod test_api {
 
-  use api::{Rreq, Rdata};
-  use api::return_vec_from_list;
+  use api::prelude::*;
   use curl::easy::List;
+  use std::str::from_utf8 as str_from_utf8;
+  
+  /// Those pesky list structs need to be easier to handle for things
+  /// like tests and print statements, so here we go
+  ///
+  fn return_vec_from_list(list : List) -> Vec<String> {
+      let iter = list.iter();
+
+      iter.map(|res|{ 
+          str_from_utf8(res).unwrap().to_string()
+      }).collect()
+  }
+
 
   #[test]
   fn test_gen_request_uri() {
@@ -227,8 +255,8 @@ mod test_api {
   #[test]
   fn test_return_vec_from_list() {
     let mut list = List::new();
-    list.append("User-Agent: test-user");
-    list.append("Host: fake.com");
+    list.append("User-Agent: test-user").unwrap();
+    list.append("Host: fake.com").unwrap();
 
     let expect: Vec<String> = vec![
       "User-Agent: test-user".to_string(), 
@@ -248,12 +276,12 @@ mod test_api {
 
     let mut args = Args::default();
     let mut expect_list = List::new();
-    expect_list.append("User-Agent: test-user");
-    expect_list.append("Host: fake.com");
+    expect_list.append("User-Agent: test-user").unwrap();
+    expect_list.append("Host: fake.com").unwrap();
 
     let mut wrong_list = List::new();
-    wrong_list.append("User-Agent: not-user");
-    wrong_list.append("Host: wrong.org");
+    wrong_list.append("User-Agent: not-user").unwrap();
+    wrong_list.append("Host: wrong.org").unwrap();
 
     args.headers  = "User-Agent: test-user,Host: fake.com".to_owned();
     let mut rreq = Rreq::stub("rust");
@@ -271,7 +299,6 @@ mod test_api {
 
   #[test]
   fn test_rreq() {
-    use serde_json::Value;
     let rreq : Rreq = Rreq::stub("rust");
 
     // for the time being, tests will query the web and print for "nocapture" debugging

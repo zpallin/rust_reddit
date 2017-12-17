@@ -2,7 +2,6 @@
 use argparse::{ArgumentParser, Store, StoreTrue};
 
 /// Struct for gathering cli arguments.
-///
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Args {
   pub key: String,
@@ -31,6 +30,7 @@ impl Default for Args {
 ///
 /// fn main() {
 ///     let args = cli::get_args();
+///     println!("{:?}", args);
 /// }
 /// ```
 ///
@@ -67,7 +67,6 @@ mod tests {
   extern crate serde_json;
   use serde_json::to_string as json_to_string;
   use cli::Args;
-  use cli::get_args;
 
   #[test]
   fn test_get_args() {
@@ -88,7 +87,7 @@ mod tests {
     expected.nocapture = args.nocapture;
 
     let args_s = json_to_string(&args).unwrap();
-    let mut args_expected = json_to_string(&expected).unwrap();
+    let args_expected = json_to_string(&expected).unwrap();
 
     println!("{}", args_s);
     println!("{}", args_expected);
